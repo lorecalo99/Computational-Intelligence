@@ -1,0 +1,23 @@
+-- Parameters -- 
+ Epsilon = 0.2 
+ Alpha = 0.9 
+ Discount factor = 0.9 
+ 
+ -- Details -- 
+ Number of episodes = 250000 
+ Resulting Q-Table lenght = 55413434 
+ Elapsed time for the training = 3707.8408718000137
+
+-- Results for 1000 games against a Random Player (repeated 5 times to show reproducibility) --
+Trained agent plays first:
+ Wins: 748, Losses: 252 
+ Wins: 735, Losses: 265 
+ Wins: 729, Losses: 271 
+ Wins: 734, Losses: 266 
+ Wins: 732, Losses: 268 
+Trained agent plays second:
+ Wins: 723, Losses: 277 
+ Wins: 726, Losses: 274 
+ Wins: 708, Losses: 292 
+ Wins: 727, Losses: 273 
+ Wins: 714, Losses: 286 

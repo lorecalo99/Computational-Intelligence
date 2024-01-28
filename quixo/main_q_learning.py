@@ -210,15 +210,9 @@ class Q_learning_Player(Player):
         # for the first move doesn't make sense to compute how far you are from the solution
         if max_same_value(boards[0],0) == 0:
             return tot_reward
-        '''
-        print("//////////////////////////////")
-        print(f"\n{boards[0]}")
-        print(max_same_value(boards[0],0))
-        print(f"\n{boards[1]}")
-        print(max_same_value(boards[1],0))
-        '''
-        '''
+        
         # check if increase chanche of winning for the opponent -> |discarded|
+        '''
         if max_same_value(boards[0],1) < max_same_value(boards[1],1):
             tot_reward -= 0.1
         '''

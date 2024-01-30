@@ -31,6 +31,38 @@ class Player(ABC):
         '''
         pass
 
+    def find_valid_moves(self):
+        valid_take = [(i, j) for i in range(0, 5) for j in range(0, 5) if i == 0 or i == 4 or j == 0 or j == 4]
+        self.valid_moves = set()
+        for i, j in valid_take:
+            # left column -> can go RIGHT
+            if i == 0:
+                self.valid_moves.add(((i, j), Move.RIGHT))
+                if j != 0:
+                    self.valid_moves.add(((i, j), Move.TOP))
+                if j != 4:
+                    self.valid_moves.add(((i, j), Move.BOTTOM))
+            # last column -> can go LEFT
+            if i == 4:
+                self.valid_moves.add(((i, j), Move.LEFT))
+                if j != 0:
+                    self.valid_moves.add(((i, j), Move.TOP))
+                if j != 4:
+                    self.valid_moves.add(((i, j), Move.BOTTOM))
+            # first row -> can go BOTTOM
+            if j == 0:
+                self.valid_moves.add(((i, j), Move.BOTTOM))
+                if i != 0:
+                    self.valid_moves.add(((i, j), Move.LEFT))
+                if i != 4:
+                    self.valid_moves.add(((i, j), Move.RIGHT))
+            # last row -> can go TOP
+            if j == 4:
+                self.valid_moves.add(((i, j), Move.TOP))
+                if i != 0:
+                    self.valid_moves.add(((i, j), Move.LEFT))
+                if i != 4:
+                    self.valid_moves.add(((i, j), Move.RIGHT))
 
 class Game(object):
     def __init__(self) -> None:

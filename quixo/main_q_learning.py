@@ -1,3 +1,6 @@
+
+################ ONLY CODE FOR AN ALTERNATIVE SOLUTION, BUT AS MAIN SOLUTION I PRESENT MINMAX ################
+
 import random
 from game import Game, Move, Player
 import numpy as np
@@ -11,38 +14,22 @@ import time
 class GameRL(Game):
     def __init__(self) -> None:
         super().__init__()
-        valid_take = [(i, j) for i in range(0, 5) for j in range(0, 5) if i == 0 or i == 4 or j == 0 or j == 4]
-        self.valid_moves = set()
-        for i, j in valid_take:
-            # left column -> can go RIGHT
-            if i == 0:
-                self.valid_moves.add(((i, j), Move.RIGHT))
-                if j != 0:
-                    self.valid_moves.add(((i, j), Move.TOP))
-                if j != 4:
-                    self.valid_moves.add(((i, j), Move.BOTTOM))
-            # last column -> can go LEFT
-            if i == 4:
-                self.valid_moves.add(((i, j), Move.LEFT))
-                if j != 0:
-                    self.valid_moves.add(((i, j), Move.TOP))
-                if j != 4:
-                    self.valid_moves.add(((i, j), Move.BOTTOM))
-            # first row -> can go BOTTOM
-            if j == 0:
-                self.valid_moves.add(((i, j), Move.BOTTOM))
-                if i != 0:
-                    self.valid_moves.add(((i, j), Move.LEFT))
-                if i != 4:
-                    self.valid_moves.add(((i, j), Move.RIGHT))
-            # last row -> can go TOP
-            if j == 4:
-                self.valid_moves.add(((i, j), Move.TOP))
-                if i != 0:
-                    self.valid_moves.add(((i, j), Move.LEFT))
-                if i != 4:
-                    self.valid_moves.add(((i, j), Move.RIGHT))
 
+    def play_without_training(self, player1: Player, player2: Player) -> int:
+        ''' play the game and returns the winning player without updating the Q_table '''
+        players = [player1, player2]
+        winner = -1
+        while winner < 0:
+            self.current_player_idx += 1
+            self.current_player_idx %= len(players)
+            ok = False
+            while not ok:
+                from_pos, slide = players[self.current_player_idx].make_move(
+                    self)
+                ok = self._Game__move(from_pos, slide, self.current_player_idx)
+            winner = self.check_winner()
+        return winner
+    
 
     def play(self, player1: Player, player2: Player) -> int:
         '''play the game, returns the winning player and update the Q_table'''
@@ -78,27 +65,11 @@ class GameRL(Game):
 
             # avoid update after first move (I need at least the random response state)
             if len(states) == 2 and self.current_player_idx == 0:
-                player1.update_q_table(boards, self.valid_moves, states, actions[0], winner)
+                player1.update_q_table(boards, states, actions[0], winner)
                 ''' ^^^ quick explanation for the Q_table update ^^^
                 boards contains: [board before myP action, board before myP next action] -> needed to calculate intermediate rewards
                 states contains: [state of myP, state of myP after random_player action]
                 actions[0] contains: action done by myP '''
-        return winner
-
-
-    def play_without_training(self, player1: Player, player2: Player) -> int:
-        ''' play the game and returns the winning player without updating the Q_table '''
-        players = [player1, player2]
-        winner = -1
-        while winner < 0:
-            self.current_player_idx += 1
-            self.current_player_idx %= len(players)
-            ok = False
-            while not ok:
-                from_pos, slide = players[self.current_player_idx].make_move(
-                    self)
-                ok = self._Game__move(from_pos, slide, self.current_player_idx)
-            winner = self.check_winner()
         return winner
     
 
@@ -118,6 +89,7 @@ class ManualPlayer(Player):
     ''' player class to play manually quixo '''
     def __init__(self) -> None:
         super().__init__()
+        self.find_valid_moves()
 
 
     def make_move(self, game: 'Game') -> tuple[tuple[int, int], Move]:
@@ -158,11 +130,11 @@ class Q_learning_Player(Player):
         else:
             self.Q = Q
         self.epsilon = epsilon
-    
+        self.find_valid_moves()
 
     def make_move(self, game: 'Game') -> tuple[tuple[int, int], Move]:
         current_player_idx = game.get_current_player()
-        available_moves = [((i, j), slide) for (i, j), slide in game.valid_moves if game._board[j, i] == current_player_idx or game._board[j, i] < 0]
+        available_moves = [((i, j), slide) for (i, j), slide in self.valid_moves if game._board[j, i] == current_player_idx or game._board[j, i] < 0]
         #available_moves.sort(key = lambda x: (x[0], x[1].value))
         available_moves_map = [map_action(game._board, available_move[0], available_move[1]) for available_move in available_moves]
 
@@ -181,11 +153,11 @@ class Q_learning_Player(Player):
         return from_pos, move
     
     
-    def update_q_table(self, boards, valid_moves, states, current_action, winner):
+    def update_q_table(self, boards, states, current_action, winner):
         ''' update the q_table (using model-free Q_learning) '''
         # Compute the best action possible on the next state
         current_player_idx = 0
-        available_moves = [((i, j), slide) for (i, j), slide in valid_moves if boards[1][j, i] == current_player_idx or boards[1][j, i] < 0]
+        available_moves = [((i, j), slide) for (i, j), slide in self.valid_moves if boards[1][j, i] == current_player_idx or boards[1][j, i] < 0]
         available_moves_map = [map_action(boards[1], available_move[0], available_move[1]) for available_move in available_moves]
         q_star_index = np.argmax([Q[(states[1], a)] for a in available_moves_map])
         from_pos = available_moves[q_star_index][0]
@@ -280,7 +252,7 @@ if __name__ == '__main__':
     EPSILON = 0.3
     ALPHA = 0.9
     DISCOUNT_FACTOR = 0.9
-    EPISODES = 250_000 
+    EPISODES = 1000#250_000 
     ''' minimum advised to see some results, around one hour and a half of training time;
     once the Q-table is achieved the results are consistent in all the tests, but with only
     250k episodes, obtaining a good Q-table depends on the run and sometimes fails '''
@@ -308,13 +280,14 @@ if __name__ == '__main__':
         g = GameRL()
         # play and update the Q_table
         winner = g.play(player1, player2)
-        #if i == 500: 
+        if i == 500:
+            print(f"\n{time.perf_counter()-start_time}")
         ''' to undersand the speed at which the player concludes the first matches and learns how to play;
-            -> usefull to me to early interrupt runs, because the initial direction taken by the player, given 
-            the fact that I can't physically do milions episodes, is strongly correlated to the final performances. 
-            In my case (for each change I did) I always discarded runs in which the time to do the training 
-            was greater than 5 seconds, but it's too much device-dependent to give general indications '''
-            #print(f"\n{time.perf_counter()-start_time}")
+        -> usefull to me to early interrupt runs, because the initial direction taken by the player, given 
+        the fact that I can't physically do milions episodes, is strongly correlated to the final performances. 
+        In my case (for each change I did) I always discarded runs in which the time to do the training 
+         was greater than 5 seconds, but it's too much device-dependent to give general indications 
+        '''       
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time

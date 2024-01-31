@@ -1,4 +1,3 @@
-
 ################ ONLY CODE FOR AN ALTERNATIVE SOLUTION, BUT AS MAIN SOLUTION I PRESENT MINMAX ################
 
 import random
@@ -11,7 +10,8 @@ import pickle
 import time 
 
 
-class GameRL(Game):
+class GameQlearning(Game):
+    ''' game class using only for the training phase of a Qlearning player '''
     def __init__(self) -> None:
         super().__init__()
 
@@ -153,7 +153,7 @@ class Q_learning_Player(Player):
         return from_pos, move
     
     
-    def update_q_table(self, boards, states, current_action, winner):
+    def update_q_table(self, boards:np.array, states:np.array, current_action:tuple[int, int], winner:int) -> None:
         ''' update the q_table (using model-free Q_learning) '''
         # Compute the best action possible on the next state
         current_player_idx = 0
@@ -175,7 +175,7 @@ class Q_learning_Player(Player):
             ALPHA * (reward + DISCOUNT_FACTOR * Q[(states[1], best_next_a)])
     
 
-    def compute_reward(self, boards):
+    def compute_reward(self, boards:np.array):
         ''' compute the reward that in Q_learning consists in the immediate reward after taken action a in state s '''
         tot_reward = 0
         
@@ -198,7 +198,7 @@ class Q_learning_Player(Player):
         return tot_reward
         
 
-def max_same_value(matrix, value):
+def max_same_value(matrix:np.array, value:int):
     ''' counts the max number of the given symbols(0/1) on the same row, column or main diagonal '''
     cols = matrix.shape[1]
     # rows check
@@ -236,30 +236,19 @@ def map_action(board: np.array, from_pos: tuple[int, int], slide: Move) -> tuple
     return (from_pos, slide)
 
 
-def are_symmetric(a: np.array, b: np.array):
-    ''' check the symmetry (not used because too much computationally expensive) '''
-    for i in range(4):
-        for j in range(2):
-            if np.array_equal(np.flip(a, j), b):
-                return True
-        a = np.rot90(a)
-    return False
-
-
-
 if __name__ == '__main__':
 
     EPSILON = 0.3
     ALPHA = 0.9
     DISCOUNT_FACTOR = 0.9
-    EPISODES = 1000#250_000 
+    EPISODES = 250_000 
     ''' minimum advised to see some results, around one hour and a half of training time;
     once the Q-table is achieved the results are consistent in all the tests, but with only
     250k episodes, obtaining a good Q-table depends on the run and sometimes fails '''
 
     LOAD_Q_TABLE = False
-    SAVE_Q_TABLE = False  # note that saving a Q_Table obtained with more than 100k/200k episodes may lead to memory error 
-    filename_Qtable = 'QTable.pkl'                                                 # depending on the used pc performances
+    SAVE_Q_TABLE = False
+    filename_Qtable = 'QTable.pkl'                                                 
     filename_Results = 'Results_250kEpisodes_Eps03_new.txt'
 
     # LOAD THE Q_TABLE
@@ -277,17 +266,9 @@ if __name__ == '__main__':
     print("Training..")
     start_time = time.perf_counter()
     for i in tqdm(range(EPISODES)):
-        g = GameRL()
+        g = GameQlearning()
         # play and update the Q_table
-        winner = g.play(player1, player2)
-        if i == 500:
-            print(f"\n{time.perf_counter()-start_time}")
-        ''' to undersand the speed at which the player concludes the first matches and learns how to play;
-        -> usefull to me to early interrupt runs, because the initial direction taken by the player, given 
-        the fact that I can't physically do milions episodes, is strongly correlated to the final performances. 
-        In my case (for each change I did) I always discarded runs in which the time to do the training 
-         was greater than 5 seconds, but it's too much device-dependent to give general indications 
-        '''       
+        winner = g.play(player1, player2)     
 
     end_time = time.perf_counter()
     elapsed_time = end_time - start_time
@@ -305,10 +286,12 @@ if __name__ == '__main__':
     n_test = 5
     n_games_per_test = 1000
 
+
+    # test for trained agent playing first
     with open(filename_Results, 'a') as f_r:
         f_r.write(f"\n-- Results for {n_games_per_test} games against a Random Player (repeated {n_test} times to show reproducibility) --\n")
         f_r.write("Trained agent plays first:\n")
-    # test for trained agent playing first
+    
     print("\nTrained agent plays first:")
     for _ in range(n_test):
         EPSILON = 0
@@ -320,7 +303,7 @@ if __name__ == '__main__':
 
         with open(filename_Results, 'a') as f_r:
             for i in range(n_games_per_test):
-                g = GameRL()
+                g = GameQlearning()
                 winner = g.play_without_training(player1, player2)
                 if winner == 0:
                     wins += 1
@@ -328,6 +311,7 @@ if __name__ == '__main__':
                     losses += 1
             f_r.write(f" Wins: {wins}, Losses: {losses} \n")
             print(f"Wins: {wins}, Losses: {losses}")
+
 
     # test for trained agent playing second
     with open(filename_Results, 'a') as f_r:
@@ -343,7 +327,7 @@ if __name__ == '__main__':
 
         with open(filename_Results, 'a') as f_r:
             for i in range(n_games_per_test):
-                g = GameRL()
+                g = GameQlearning()
                 winner = g.play_without_training(player1, player2)
                 if winner == 1:
                     wins += 1
@@ -353,7 +337,7 @@ if __name__ == '__main__':
             print(f"Wins: {wins}, Losses: {losses}")
 
 
-    # SAVE THE Q_TABLE (it works depending on the number of entries and on the memory of the used pc)
+    # SAVE THE Q_TABLE
     if SAVE_Q_TABLE: 
         print("\nSaving the Q_table..")
         with open(filename_Qtable, 'wb') as f:
